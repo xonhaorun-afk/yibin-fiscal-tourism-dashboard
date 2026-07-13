@@ -98,6 +98,22 @@ def compute_chart_data(data):
     fis_tax = [data['city_fiscal'].get(y, {}).get('税收') for y in fis_years]
     fis_exp = [data['city_fiscal'].get(y, {}).get('支出') for y in fis_years]
 
+    # 政府性基金收入 (土地财政)
+    gov_fund_2024 = {}
+    for d in districts:
+        v = data['gov_fund_revenue_2024'].get(d)
+        if v is not None:
+            gov_fund_2024[d] = v
+    gov_fund_2024_sorted = dict(sorted(gov_fund_2024.items(), key=lambda x: x[1], reverse=True))
+
+    # 债务余额
+    debt_2024 = {}
+    for d in districts:
+        v = data['debt_balance_2024'].get(d)
+        if v is not None:
+            debt_2024[d] = v
+    debt_2024_sorted = dict(sorted(debt_2024.items(), key=lambda x: x[1], reverse=True))
+
     return {
         "city_gdp_years": city_gdp_years,
         "city_gdp_vals": city_gdp_vals,
@@ -114,6 +130,10 @@ def compute_chart_data(data):
         "fis_inc": fis_inc,
         "fis_tax": fis_tax,
         "fis_exp": fis_exp,
+        "gov_fund_keys": list(gov_fund_2024_sorted.keys()),
+        "gov_fund_vals": list(gov_fund_2024_sorted.values()),
+        "debt_keys": list(debt_2024_sorted.keys()),
+        "debt_vals": list(debt_2024_sorted.values()),
     }
 
 
@@ -358,6 +378,17 @@ body{{
     <div id="chart-city-fiscal" class="chart-container"></div>
   </div>
 
+  <div class="chart-grid">
+    <div class="section">
+      <div class="section-title">2024年政府性基金收入（土地财政）</div>
+      <div id="chart-gov-fund" class="chart-container"></div>
+    </div>
+    <div class="section">
+      <div class="section-title">2024年末政府债务余额（亿元）</div>
+      <div id="chart-debt" class="chart-container"></div>
+    </div>
+  </div>
+
   <div class="section">
     <div class="section-title">交互式数据总表</div>
     <div class="tabs">
@@ -521,9 +552,44 @@ chartCityFiscal.setOption({{
   ]
 }});
 
+const chartGovFund = echarts.init(document.getElementById('chart-gov-fund'));
+chartGovFund.setOption({{
+  tooltip: {{ trigger: 'axis', axisPointer: {{ type: 'shadow' }} }},
+  xAxis: {{ type: 'category', data: CHART_DATA.gov_fund_keys, axisLabel: {{ fontSize: 12, rotate: 30 }} }},
+  yAxis: {{ type: 'value', name: '亿元' }},
+  series: [{{
+    data: CHART_DATA.gov_fund_vals,
+    type: 'bar', barWidth: '55%',
+    itemStyle: {{ color: '#f39c12' }},
+    label: {{ show: true, position: 'top', fontSize: 11 }}
+  }}]
+}});
+
+const chartDebt = echarts.init(document.getElementById('chart-debt'));
+chartDebt.setOption({{
+  tooltip: {{ trigger: 'axis', axisPointer: {{ type: 'shadow' }} }},
+  xAxis: {{ type: 'category', data: CHART_DATA.debt_keys, axisLabel: {{ fontSize: 12, rotate: 30 }} }},
+  yAxis: {{ type: 'value', name: '亿元' }},
+  series: [{{
+    data: CHART_DATA.debt_vals,
+    type: 'bar', barWidth: '55%',
+    itemStyle: {{
+      color: function(params) {{
+        const v = params.value;
+        if (v >= 100) return '#c0392b';
+        if (v >= 70) return '#e74c3c';
+        if (v >= 50) return '#f39c12';
+        return '#f1c40f';
+      }}
+    }},
+    label: {{ show: true, position: 'top', fontSize: 11 }}
+  }}]
+}});
+
 window.addEventListener('resize', function() {{
   chartCityGdp.resize(); chartGdp2024.resize(); chartFiscal2024.resize();
   chartGdpTrend.resize(); chartSelfRatio.resize(); chartPcGdp.resize(); chartCityFiscal.resize();
+  chartGovFund.resize(); chartDebt.resize();
 }});
 </script>
 </body>
